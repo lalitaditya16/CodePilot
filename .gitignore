@@ -76,4 +76,4 @@ ehthumbs.db
 Desktop.ini
 
 # Streamlit
-.streamlit/secrets.toml
+# .streamlit/secrets.toml (commented out to include template)
