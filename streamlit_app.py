@@ -236,15 +236,27 @@ def main():
         
         # Quick examples
         st.header("📚 Quick Examples")
+        st.subheader("🎯 Generation")
         if st.button("Fibonacci Function"):
             st.session_state.prompt_input = "Create a function to calculate fibonacci numbers"
         if st.button("Binary Search"):
             st.session_state.prompt_input = "Implement binary search algorithm"
         if st.button("Data Structure"):
             st.session_state.prompt_input = "Create a binary tree class with insert and search methods"
+        
+        st.subheader("🔍 Analysis")
+        if st.button("Analyze Sample Code"):
+            st.session_state.generated_code = '''def bubble_sort(arr):
+    n = len(arr)
+    for i in range(n):
+        for j in range(0, n-i-1):
+            if arr[j] > arr[j+1]:
+                arr[j], arr[j+1] = arr[j+1], arr[j]
+    return arr'''
+            st.session_state.analysis_mode = "full"
     
     # Main content area
-    tab1, tab2, tab3, tab4 = st.tabs(["🎯 Generate", "📊 Dashboard", "📈 Analysis", "📋 History"])
+    tab1, tab2, tab3, tab4, tab5 = st.tabs(["🎯 Generate", "🔍 Analyze Code", "📊 Dashboard", "📈 Analysis", "📋 History"])
     
     with tab1:
         st.markdown('<h2 class="sub-header">Code Generation</h2>', unsafe_allow_html=True)
@@ -382,6 +394,197 @@ def sample_function():
             )
     
     with tab2:
+        st.markdown('<h2 class="sub-header">Analyze Your Code</h2>', unsafe_allow_html=True)
+        st.markdown("Upload or paste your existing Python code for comprehensive analysis!")
+        
+        # Input method selection
+        input_method = st.radio(
+            "Choose input method:",
+            ["📝 Paste Code", "📁 Upload File", "🔗 Load from Examples"],
+            horizontal=True
+        )
+        
+        user_code = ""
+        
+        if input_method == "📝 Paste Code":
+            user_code = st.text_area(
+                "Paste your Python code here:",
+                height=300,
+                placeholder="""def example_function(x, y):
+    # Your code here
+    result = x + y
+    return result
+
+# Example usage
+print(example_function(5, 3))""",
+                help="Paste your Python code and we'll analyze it for quality, generate tests, and suggest optimizations!"
+            )
+        
+        elif input_method == "📁 Upload File":
+            uploaded_file = st.file_uploader(
+                "Choose a Python file",
+                type=['py'],
+                help="Upload a .py file to analyze"
+            )
+            if uploaded_file is not None:
+                try:
+                    user_code = str(uploaded_file.read(), "utf-8")
+                    st.success(f"✅ Successfully loaded {uploaded_file.name}")
+                    st.code(user_code[:500] + "..." if len(user_code) > 500 else user_code, language="python")
+                except Exception as e:
+                    st.error(f"❌ Error reading file: {str(e)}")
+        
+        elif input_method == "🔗 Load from Examples":
+            example_codes = {
+                "Simple Function": '''def calculate_fibonacci(n):
+    """Calculate nth Fibonacci number."""
+    if n <= 1:
+        return n
+    return calculate_fibonacci(n-1) + calculate_fibonacci(n-2)''',
+                
+                "Class Example": '''class Calculator:
+    def __init__(self):
+        self.history = []
+    
+    def add(self, a, b):
+        result = a + b
+        self.history.append(f"Added {a} + {b} = {result}")
+        return result
+    
+    def get_history(self):
+        return self.history''',
+                
+                "Algorithm": '''def quicksort(arr):
+    if len(arr) <= 1:
+        return arr
+    pivot = arr[len(arr) // 2]
+    left = [x for x in arr if x < pivot]
+    middle = [x for x in arr if x == pivot]
+    right = [x for x in arr if x > pivot]
+    return quicksort(left) + middle + quicksort(right)''',
+                
+                "Data Processing": '''import json
+from typing import List, Dict
+
+def process_user_data(data: List[Dict]) -> Dict:
+    """Process user data and return statistics."""
+    if not data:
+        return {}
+    
+    total_users = len(data)
+    active_users = sum(1 for user in data if user.get('active', False))
+    
+    return {
+        'total_users': total_users,
+        'active_users': active_users,
+        'activity_rate': active_users / total_users if total_users > 0 else 0
+    }'''
+            }
+            
+            selected_example = st.selectbox("Choose an example:", list(example_codes.keys()))
+            user_code = example_codes[selected_example]
+            st.code(user_code, language="python")
+        
+        # Analysis buttons
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            if st.button("🔍 Quick Analysis", type="primary", use_container_width=True):
+                if user_code.strip():
+                    st.session_state.generated_code = user_code
+                    st.session_state.analysis_mode = "quick"
+                else:
+                    st.error("Please provide some code to analyze!")
+        
+        with col2:
+            if st.button("🧪 Full Analysis + Tests", use_container_width=True):
+                if user_code.strip():
+                    st.session_state.generated_code = user_code
+                    st.session_state.analysis_mode = "full"
+                else:
+                    st.error("Please provide some code to analyze!")
+        
+        with col3:
+            if st.button("⚡ Analysis + Optimization", use_container_width=True):
+                if user_code.strip():
+                    st.session_state.generated_code = user_code
+                    st.session_state.analysis_mode = "optimize"
+                else:
+                    st.error("Please provide some code to analyze!")
+        
+        # Process analysis
+        if hasattr(st.session_state, 'analysis_mode') and st.session_state.generated_code:
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            
+            try:
+                # Step 1: Always validate
+                status_text.text("🔍 Analyzing code quality...")
+                progress_bar.progress(30)
+                
+                validator = CodeValidator()
+                st.session_state.validation_results = validator.validate(st.session_state.generated_code)
+                
+                if st.session_state.analysis_mode in ["full", "optimize"]:
+                    # Step 2: Generate tests
+                    status_text.text("🧪 Generating and running tests...")
+                    progress_bar.progress(60)
+                    
+                    test_generator = TestGenerator()
+                    st.session_state.test_results = test_generator.generate_and_run_tests(
+                        st.session_state.generated_code
+                    )
+                
+                if st.session_state.analysis_mode == "optimize":
+                    # Step 3: Optimize code
+                    status_text.text("⚡ Analyzing optimization opportunities...")
+                    progress_bar.progress(90)
+                    
+                    optimizer = CodeOptimizer()
+                    st.session_state.optimization_results = optimizer.optimize(
+                        st.session_state.generated_code
+                    )
+                
+                progress_bar.progress(100)
+                status_text.text("✅ Analysis complete!")
+                
+                # Add to history
+                st.session_state.generation_history.append({
+                    'timestamp': time.time(),
+                    'prompt': f"User Code Analysis ({st.session_state.analysis_mode})",
+                    'code': st.session_state.generated_code,
+                    'validation': st.session_state.validation_results,
+                    'full_pipeline': st.session_state.analysis_mode != "quick"
+                })
+                
+                time.sleep(1)
+                progress_bar.empty()
+                status_text.empty()
+                
+                # Clear the analysis mode
+                del st.session_state.analysis_mode
+                
+                st.success("🎉 Analysis complete! Check the Dashboard and Analysis tabs for detailed results.")
+                
+            except Exception as e:
+                st.error(f"❌ Error during analysis: {str(e)}")
+                progress_bar.empty()
+                status_text.empty()
+        
+        # Show current code being analyzed
+        if st.session_state.generated_code and not hasattr(st.session_state, 'analysis_mode'):
+            st.markdown("### 📝 Current Code")
+            st.code(st.session_state.generated_code, language="python")
+            
+            # Download button
+            st.download_button(
+                "📥 Download Analyzed Code",
+                st.session_state.generated_code,
+                file_name="analyzed_code.py",
+                mime="text/plain"
+            )
+    
+    with tab3:
         st.markdown('<h2 class="sub-header">Quality Dashboard</h2>', unsafe_allow_html=True)
         
         if st.session_state.validation_results or st.session_state.test_results or st.session_state.optimization_results:
@@ -439,7 +642,7 @@ def sample_function():
         else:
             st.info("🔍 Generate code first to see the quality dashboard!")
     
-    with tab3:
+    with tab4:
         st.markdown('<h2 class="sub-header">Detailed Analysis</h2>', unsafe_allow_html=True)
         
         if st.session_state.validation_results:
@@ -509,7 +712,7 @@ def sample_function():
                         st.write(f"**Confidence:** {suggestion.confidence:.1f}")
                         st.write(f"**Expected Improvement:** {suggestion.estimated_improvement}")
     
-    with tab4:
+    with tab5:
         st.markdown('<h2 class="sub-header">Generation History</h2>', unsafe_allow_html=True)
         
         if st.session_state.generation_history:
