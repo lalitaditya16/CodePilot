@@ -10,9 +10,16 @@ import os
 import json
 import time
 from typing import Dict, Any, Optional
-import plotly.graph_objects as go
-import plotly.express as px
 from pathlib import Path
+
+# Handle plotly imports with fallback
+try:
+    import plotly.graph_objects as go
+    import plotly.express as px
+    PLOTLY_AVAILABLE = True
+except ImportError:
+    PLOTLY_AVAILABLE = False
+    st.warning("⚠️ Plotly not available. Charts will be disabled. Install with: `pip install plotly`")
 
 # Add src and parent to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
@@ -151,7 +158,7 @@ def create_metrics_dashboard(validation_results, test_results, optimization_resu
 
 def create_quality_chart(validation_results):
     """Create a radar chart showing code quality metrics."""
-    if not validation_results:
+    if not validation_results or not PLOTLY_AVAILABLE:
         return None
     
     categories = ['Style', 'Security', 'Complexity', 'Maintainability', 'Documentation']
@@ -395,12 +402,21 @@ def sample_function():
                     fig = create_quality_chart(st.session_state.validation_results)
                     if fig:
                         st.plotly_chart(fig, use_container_width=True)
+                    elif not PLOTLY_AVAILABLE:
+                        # Fallback: text-based quality metrics
+                        st.subheader("Code Quality Metrics")
+                        val = st.session_state.validation_results
+                        st.write(f"• **Style Score**: {max(0, 100 - len(val.style_issues) * 10)}/100")
+                        st.write(f"• **Security Score**: {max(0, 100 - len(val.security_issues) * 20)}/100")
+                        st.write(f"• **Complexity**: {val.complexity_score}")
+                        st.write(f"• **Maintainability**: {val.maintainability_index}")
+                        st.write(f"• **Documentation**: {'Good' if len(val.suggestions) < 3 else 'Needs Work'}")
             
             with col2:
                 if st.session_state.optimization_results:
                     # Optimization suggestions chart
                     suggestions = st.session_state.optimization_results.suggestions
-                    if suggestions:
+                    if suggestions and PLOTLY_AVAILABLE:
                         suggestion_types = {}
                         for suggestion in suggestions:
                             suggestion_types[suggestion.type] = suggestion_types.get(suggestion.type, 0) + 1
@@ -411,6 +427,15 @@ def sample_function():
                             title="Optimization Suggestions by Type"
                         )
                         st.plotly_chart(fig, use_container_width=True)
+                    elif suggestions and not PLOTLY_AVAILABLE:
+                        # Fallback: simple text-based chart
+                        suggestion_types = {}
+                        for suggestion in suggestions:
+                            suggestion_types[suggestion.type] = suggestion_types.get(suggestion.type, 0) + 1
+                        
+                        st.subheader("Optimization Suggestions by Type")
+                        for stype, count in suggestion_types.items():
+                            st.write(f"• **{stype}**: {count} suggestions")
         else:
             st.info("🔍 Generate code first to see the quality dashboard!")
     
