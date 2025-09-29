@@ -164,3 +164,9 @@ git remote -v
 - 🎓 [Git Tutorial](https://git-scm.com/docs/gittutorial)
 
 **Ready to make your project public and share it with the world!** 🌟
+
+## ✅ Your Repository is Live!
+
+Your project is now available at: **https://github.com/lalitaditya16/CodePilot**
+
+🎉 **Congratulations! Your AI Python Code Generator is now on GitHub!**
