@@ -22,3 +22,5 @@ plotly>=5.17.0
 watchdog>=3.0.0
 pandas>=2.0.0
 numpy>=1.24.0
+pydantic_settings
+memory_profiler
