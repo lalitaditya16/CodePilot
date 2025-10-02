@@ -1,4 +1,4 @@
-# 🤖 AI Python Code Generator
+# 🤖 AI powered Python CodePilot
 
 > **Generate • Validate • Test • Optimize Python Code with AI**
 
